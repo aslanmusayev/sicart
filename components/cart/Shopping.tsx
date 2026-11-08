@@ -6,6 +6,7 @@ import { Accessibility, Check, MapPin, Navigation, ShoppingCart, Sparkles } from
 import { planRoute } from "@/lib/map/route";
 import { IsoMap } from "../map/IsoMap";
 import { VoiceDock } from "../voice/VoiceDock";
+import { DemoPilot, drop, pick } from "./DemoPilot";
 import { getProduct } from "@/lib/data/catalog";
 import { ENTRANCE, SHELVES } from "@/lib/data/storeMap";
 import type { Cell } from "@/lib/data/types";
@@ -129,7 +130,9 @@ export function Shopping({ state }: { state: SessionState }) {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
                     transition={spring.soft}
-                    className="flex items-center gap-3 rounded-tile px-2 py-1.5"
+                    onClick={() => !item.checked && pick(state.cartId, item.productId, item.qty)}
+                    title={item.checked ? undefined : "Tap to simulate picking it up"}
+                    className={`flex items-center gap-3 rounded-tile px-2 py-1.5 ${item.checked ? "" : "cursor-pointer hover:bg-white/70 active:scale-[0.99]"}`}
                   >
                     <span
                       className={`grid size-6 shrink-0 place-items-center rounded-full border-2 transition-colors duration-300 ${
@@ -180,6 +183,7 @@ export function Shopping({ state }: { state: SessionState }) {
               </motion.p>
             </AnimatePresence>
           </div>
+          <DemoPilot state={state} />
           {route.stops.length > 0 && (
             <motion.span
               key={`${route.etaMin}-${route.stops.length}`}
@@ -214,6 +218,13 @@ export function Shopping({ state }: { state: SessionState }) {
                   {getProduct(nextProductId).name} <span className="font-normal text-ink-muted">· {shelfLabel(nextProductId)}</span>
                 </p>
               </div>
+              <button
+                type="button"
+                onClick={() => pick(state.cartId, nextProductId)}
+                className="ml-auto shrink-0 rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-glow active:scale-95"
+              >
+                Pick up
+              </button>
             </motion.div>
           ) : (
             <motion.p key="done" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-card bg-brand-50 p-3 text-center font-semibold text-brand-700">
@@ -247,7 +258,9 @@ export function Shopping({ state }: { state: SessionState }) {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, x: 48, transition: { duration: 0.2 } }}
                   transition={spring.drop}
-                  className={`flex items-center gap-3 rounded-card p-2 pr-3 transition-colors duration-700 ${isNew ? "bg-brand-50" : "bg-canvas"}`}
+                  onClick={() => drop(state.cartId, line.productId)}
+                  title="Tap to simulate taking one out"
+                  className={`flex cursor-pointer items-center gap-3 rounded-card p-2 pr-3 transition-colors duration-700 active:scale-[0.99] ${isNew ? "bg-brand-50" : "bg-canvas"}`}
                 >
                   <ProductArt product={p} size={56} />
                   <div className="min-w-0 flex-1">
@@ -296,7 +309,9 @@ export function Shopping({ state }: { state: SessionState }) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
               transition={spring.soft}
-              className="relative mt-4 rounded-card border border-brand-200 bg-brand-50 p-3"
+              onClick={() => pick(state.cartId, reco.productId)}
+              title="Tap to add it to the cart"
+              className="relative mt-4 cursor-pointer rounded-card border border-brand-200 bg-brand-50 p-3 active:scale-[0.99]"
             >
               {reco.discountPct > 0 && (
                 <span className="absolute right-3 top-3 rounded-full bg-brand-500 px-2.5 py-0.5 text-sm font-semibold text-white">
