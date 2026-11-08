@@ -1,0 +1,9 @@
+# never upload secrets or local-only files
+.env
+.env.*
+!.env.example
+PLAN.md
+KICKOFF-PROMPT.md
+.image-work/
+supabase/.temp/
+.claude/
