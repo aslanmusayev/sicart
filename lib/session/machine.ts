@@ -161,6 +161,7 @@ function apply(state: SessionState, action: SessionAction): SessionState {
         {
           ...state,
           list: state.list.filter((l) => !drop.has(l.productId)),
+          focus: state.focus && drop.has(state.focus.productId) ? null : state.focus,
           lastEvent: { type: "list", at: action.at },
         },
         state.cart.at(-1)?.productId ?? null,

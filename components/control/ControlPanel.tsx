@@ -118,6 +118,8 @@ export function ControlPanel({ cartId }: { cartId: number }) {
         <Btn onClick={() => act("reset")} disabled={busy} tone="danger" className="col-span-3">Reset cart</Btn>
       </section>
 
+      {state && state.status !== "idle" && <CommandBox cartId={cartId} pin={pin} />}
+
       {state && state.status !== "idle" && (
         <section className="px-4 pt-5">
           <h2 className="mb-2 text-sm font-semibold text-neutral-500">Map · tap the floor to move the cart</h2>
@@ -237,6 +239,52 @@ function Btn({
       {...props}
       className={`rounded-xl px-3 py-3 text-sm font-semibold disabled:opacity-60 ${tones[tone]} ${className}`}
     />
+  );
+}
+
+/** Typed-command fallback (PLAN.md R2): same assistant and tools as voice, for a noisy hall. */
+function CommandBox({ cartId, pin }: { cartId: number; pin: string }) {
+  const [text, setText] = useState("");
+  const [reply, setReply] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+
+  async function send(e: React.FormEvent) {
+    e.preventDefault();
+    if (!text.trim() || sending) return;
+    setSending(true);
+    setReply(null);
+    try {
+      const res = await fetch("/api/command", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-demo-pin": pin },
+        body: JSON.stringify({ cartId, text }),
+      });
+      const json = await res.json();
+      setReply(res.ok ? json.reply : `⚠ ${json.error ?? "Failed"}`);
+      if (res.ok) setText("");
+    } catch {
+      setReply("⚠ Network problem");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <section className="px-4 pt-5">
+      <h2 className="mb-2 text-sm font-semibold text-neutral-500">Type a command (voice fallback)</h2>
+      <form onSubmit={send} className="flex gap-2">
+        <input
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="I'm cooking carbonara for 4"
+          className="min-w-0 flex-1 rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-base outline-none focus:border-emerald-500"
+        />
+        <button disabled={sending} className="rounded-xl bg-neutral-900 px-4 font-semibold text-white disabled:opacity-60">
+          {sending ? "…" : "Send"}
+        </button>
+      </form>
+      {reply && <p className="mt-2 rounded-xl bg-white p-3 text-sm shadow-sm">{reply}</p>}
+    </section>
   );
 }
 

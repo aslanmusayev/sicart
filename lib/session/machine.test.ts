@@ -137,6 +137,8 @@ describe("session machine", () => {
     expect(reduce(s, add("spaghetti")).focus?.productId).toBe("olive-oil");
     expect(reduce(s, add("olive-oil")).focus).toBeNull();
     expect(reduce(s, { type: "focus", productId: null, at: 5 }).focus).toBeNull();
+    const listed = reduce(s, { type: "list_add", at: 6, items: [{ productId: "olive-oil", qty: 1, source: "voice" }] });
+    expect(reduce(listed, { type: "list_remove", productIds: ["olive-oil"], at: 7 }).focus).toBeNull();
     expect(() => reduce(idleState(12), { type: "focus", productId: "milk", at: 1 })).toThrow(SessionError);
   });
 
