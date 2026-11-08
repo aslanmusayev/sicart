@@ -61,6 +61,13 @@ export function useCartSnapshot(cartId: number) {
     };
   }, [accept, cartId, refetch]);
 
+  // Fallback while the websocket is down (hall Wi-Fi): poll the snapshot so screens never freeze.
+  useEffect(() => {
+    if (link === "live") return;
+    const timer = setInterval(() => void refetch(), 4000);
+    return () => clearInterval(timer);
+  }, [link, refetch]);
+
   /** `accept` lets a screen apply the snapshot returned by its own POST right away. */
   return { state, link, refetch, accept };
 }

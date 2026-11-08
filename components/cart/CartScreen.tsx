@@ -2,7 +2,9 @@
 // The screen mounted on the cart (tablet / laptop / projector, landscape).
 // It only renders the latest server snapshot; the only things it sends are "checkout" and the auto "reset".
 import { AnimatePresence, LayoutGroup, motion } from "motion/react";
-import { useEffect, useSyncExternalStore } from "react";
+import { Volume2 } from "lucide-react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { sound, unlockSound } from "@/lib/ui/sound";
 import { useCartSnapshot } from "@/lib/realtime/useCartSnapshot";
 import { sendAction } from "@/lib/session/client";
 import { spring } from "@/lib/ui/motion";
@@ -36,6 +38,39 @@ export function CartScreen({ cartId, appUrl }: { cartId: number; appUrl: string 
     const timer = setTimeout(() => void sendAction(cartId, "reset").catch(() => {}), RESET_AFTER_PAID_MS);
     return () => clearTimeout(timer);
   }, [status, receiptId, cartId]);
+
+  // Sound needs one user gesture on the cart screen (tap, click or the Space bar).
+  const [soundOn, setSoundOn] = useState(false);
+  useEffect(() => {
+    const on = () => {
+      unlockSound();
+      setSoundOn(true);
+    };
+    window.addEventListener("pointerdown", on, { once: true });
+    window.addEventListener("keydown", on, { once: true });
+    return () => {
+      window.removeEventListener("pointerdown", on);
+      window.removeEventListener("keydown", on);
+    };
+  }, []);
+
+  // One cue per event; nothing for the snapshot the screen loaded with.
+  const evType = state?.lastEvent?.type;
+  const evKey = state?.lastEvent ? `${evType}-${state.lastEvent.at}` : null;
+  const played = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (played.current === undefined) {
+      if (state) played.current = evKey;
+      return;
+    }
+    if (!evKey || played.current === evKey) return;
+    played.current = evKey;
+    if (evType === "added") sound.add();
+    else if (evType === "removed") sound.remove();
+    else if (evType === "connected") sound.connect();
+    else if (evType === "checkout") sound.checkout();
+    else if (evType === "paid") sound.paid();
+  }, [evKey, evType, state]);
 
   const inSession = state && status !== "idle";
 
@@ -88,6 +123,12 @@ export function CartScreen({ cartId, appUrl }: { cartId: number; appUrl: string 
       <AnimatePresence>
         {state && (status === "checkout" || status === "paid") && <CheckoutOverlay key="checkout" state={state} />}
       </AnimatePresence>
+
+      {!soundOn && state && (
+        <span className="absolute bottom-4 right-4 flex items-center gap-2 rounded-full bg-surface/90 px-3 py-1.5 text-sm text-ink-subtle shadow-soft">
+          <Volume2 size={14} /> Tap anywhere for sound
+        </span>
+      )}
 
       {link !== "live" && (
         <div className="absolute bottom-4 left-4 flex items-center gap-2 rounded-full bg-surface/90 px-3 py-1.5 text-sm text-ink-muted shadow-soft">
