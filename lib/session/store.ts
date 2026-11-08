@@ -2,6 +2,7 @@
 // version check, then broadcast the FULL snapshot on Realtime channel `cart:{id}`.
 // carts.active_session always points at the cart's latest session row (it stays there after a reset, so the
 // version keeps growing and clients never see an "older" idle snapshot).
+import { after } from "next/server";
 import { getProduct } from "../data/catalog";
 import { adminClient, serviceKey, supabaseUrl } from "../supabase/server";
 import { idleState, reduce } from "./machine";
@@ -25,7 +26,24 @@ async function load(cartId: number): Promise<Loaded> {
     .eq("id", cart.active_session)
     .single();
   if (rowError) throw rowError;
-  return { rowId: row.id as string, state: row.state as SessionState };
+  const loaded = { rowId: row.id as string, state: row.state as SessionState };
+  known.set(cartId, loaded);
+  return loaded;
+}
+
+/**
+ * Last snapshot this server instance wrote or read, per cart. Saves two database round trips per tap.
+ * Safe: if another instance changed the cart, the version check in persist() fails and we reload.
+ */
+const known = new Map<number, Loaded>();
+
+/** Broadcast after the response is sent (versions keep the order right on the clients). */
+function broadcastSoon(state: SessionState) {
+  try {
+    after(() => broadcast(state));
+  } catch {
+    void broadcast(state); // outside a request (scripts, tests)
+  }
 }
 
 export async function getSnapshot(cartId: number): Promise<SessionState> {
@@ -34,18 +52,44 @@ export async function getSnapshot(cartId: number): Promise<SessionState> {
 
 type ActionInput = SessionAction | ((state: SessionState) => SessionAction | Promise<SessionAction>);
 
+// Requests for the same cart inside one server instance run one after another, so a burst of taps
+// never fights over the version. Across instances (serverless) the optimistic version check still
+// protects the data, with jittered retries.
+const cartQueues = new Map<number, Promise<unknown>>();
+function serialised<T>(cartId: number, work: () => Promise<T>): Promise<T> {
+  const previous = cartQueues.get(cartId) ?? Promise.resolve();
+  const run = previous.catch(() => {}).then(work);
+  const tail = run.catch(() => {});
+  cartQueues.set(cartId, tail);
+  void tail.then(() => {
+    if (cartQueues.get(cartId) === tail) cartQueues.delete(cartId);
+  });
+  return run;
+}
+
+const MAX_ATTEMPTS = 8;
+const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 /** Applies one action. Retries when another request changed the cart in between. */
-export async function dispatch(cartId: number, input: ActionInput): Promise<SessionState> {
-  for (let attempt = 0; attempt < 4; attempt++) {
-    const { rowId, state } = await load(cartId);
+export function dispatch(cartId: number, input: ActionInput): Promise<SessionState> {
+  return serialised(cartId, () => dispatchNow(cartId, input));
+}
+
+async function dispatchNow(cartId: number, input: ActionInput): Promise<SessionState> {
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    if (attempt) await pause(15 + Math.random() * 50 * attempt);
+    const cached = attempt === 0 ? known.get(cartId) : undefined;
+    const { rowId, state } = cached ?? (await load(cartId));
     const action = typeof input === "function" ? await input(state) : input;
     // A cart that never had a session is already idle: resetting it must not invent a version nobody stored.
     if (!rowId && action.type === "reset") return state;
     const next = reduce(state, action);
     if (await persist(cartId, rowId, state, next, action)) {
-      await broadcast(next);
+      known.set(cartId, { rowId: action.type === "connect" ? action.sessionId : rowId, state: next });
+      broadcastSoon(next);
       return next;
     }
+    known.delete(cartId); // someone else changed the cart: reload on the next attempt
   }
   throw new SessionError("The cart is busy, please try again", 409);
 }
