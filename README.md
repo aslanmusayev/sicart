@@ -29,9 +29,38 @@ _Data sources and data model to be described._
 
 ## 5. Run it
 
-_Setup and run instructions to be added._
+Requirements: Node 22+ and npm. Secrets live in `.env.local` and are **never committed**; `.env.example` lists
+the variable names.
 
-Secrets live in `.env.local` and are **never committed**. See `.env.example` for the variable names.
+```bash
+npm install
+cp .env.example .env.local   # then fill in the values
+npm run dev                  # http://localhost:3000
+```
+
+| Command | What it does |
+|---|---|
+| `npm run dev` / `npm run build` | Next.js dev server / production build |
+| `npm test` | Unit tests (vitest): store data integrity, session reducer, recommendations |
+| `npm run typecheck` / `npm run lint` | TypeScript and ESLint |
+| `npm run seed:gen` | Regenerate `supabase/seed.sql` from `lib/data/personas.ts` |
+| `npm run seed:push` | Reset the demo data in the linked Supabase project |
+| `npm run db -- db push --remote` | Apply new migrations from `supabase/migrations` |
+| `npm run smoke:api` | End-to-end check of the session API and Realtime (needs `npm run dev -- -p 3100`) |
+| `npm run images` | Generate product packshots (needs a Gemini key with billing enabled) |
+
+Surfaces: `/` launcher, `/cart/12` cart screen, `/app` customer app, `/control` Demo Control (PIN = `DEMO_CONTROL_PIN`).
+
+### Deploy (Vercel)
+
+1. Import the GitHub repo in Vercel (framework preset: Next.js, no other settings needed).
+2. Add these Environment Variables (Production and Preview), copied from `.env.local`:
+   `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`,
+   `DEMO_CONTROL_PIN`, and `NEXT_PUBLIC_APP_URL`.
+   `SUPABASE_DB_PASSWORD` and `SUPABASE_PROJECT_REF` are only for the CLI and are not needed on Vercel.
+3. Deploy, then set `NEXT_PUBLIC_APP_URL` to the deployed `https://...vercel.app` URL (the cart QR code points
+   there) and redeploy.
+4. Open the URL on the devices: the phone's microphone and camera only work over HTTPS.
 
 ## 6. Team
 

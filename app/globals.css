@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+/*
+ * SiCart design tokens (PLAN.md: premium light, Apple-like, ONE vivid fresh-green accent, glass panels,
+ * spring motion, light mode only so it stays readable on a projector). 8-pt grid = Tailwind's spacing scale.
+ */
+@theme {
+  /* accent: fresh green */
+  --color-brand-50: #ecfdf3;
+  --color-brand-100: #d1fadf;
+  --color-brand-200: #a6f4c5;
+  --color-brand-300: #6ce9a6;
+  --color-brand-400: #32d583;
+  --color-brand-500: #12b76a;
+  --color-brand-600: #039855;
+  --color-brand-700: #027a48;
+  --color-brand-800: #05603a;
+  --color-brand-900: #054f31;
+
+  /* neutrals: slightly warm, high contrast for projectors */
+  --color-ink: #0b1215;
+  --color-ink-muted: #4f5b63;
+  --color-ink-subtle: #87929a;
+  --color-canvas: #f5f6f3;
+  --color-surface: #ffffff;
+  --color-line: #e4e7e2;
+  --color-glass: rgb(255 255 255 / 0.72);
+
+  /* semantic */
+  --color-danger: #e5484d;
+  --color-warning: #f5a524;
+  --color-offer: #12b76a;
+
+  /* type: Geist; display sizes for the cart screen */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --text-display: 4.5rem;
+  --text-display--line-height: 1.02;
+  --text-display--letter-spacing: -0.035em;
+  --text-headline: 2.75rem;
+  --text-headline--line-height: 1.08;
+  --text-headline--letter-spacing: -0.025em;
+  --text-title: 1.75rem;
+  --text-title--line-height: 1.2;
+  --text-title--letter-spacing: -0.015em;
+
+  /* shape */
+  --radius-tile: 1rem;
+  --radius-card: 1.5rem;
+  --radius-panel: 2rem;
+
+  /* depth */
+  --shadow-soft: 0 1px 2px rgb(16 24 20 / 0.04), 0 8px 24px rgb(16 24 20 / 0.06);
+  --shadow-lift: 0 2px 6px rgb(16 24 20 / 0.06), 0 18px 48px rgb(16 24 20 / 0.1);
+  --shadow-glow: 0 0 0 6px rgb(18 183 106 / 0.16), 0 10px 30px rgb(18 183 106 / 0.28);
+
+  /* motion (CSS side; JS springs live in lib/ui/motion.ts) */
+  --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Glass panel used across the cart screen and the phone. */
+@utility glass {
+  background: var(--color-glass);
+  backdrop-filter: saturate(1.6) blur(24px);
+  -webkit-backdrop-filter: saturate(1.6) blur(24px);
+  border: 1px solid rgb(255 255 255 / 0.6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
