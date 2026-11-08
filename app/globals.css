@@ -77,6 +77,16 @@ body {
   border: 1px solid rgb(255 255 255 / 0.6);
 }
 
+/* Light flowing along the map route (dash pattern 1 + 10 = 11, two periods per loop). */
+@keyframes route-flow {
+  to {
+    stroke-dashoffset: -22;
+  }
+}
+.route-flow {
+  animation: route-flow 1.2s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
