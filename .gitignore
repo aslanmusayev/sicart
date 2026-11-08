@@ -37,3 +37,12 @@ android/app/build/
 *.apk
 *.aab
 local.properties
+
+# supabase cli cache
+supabase/.temp/
+supabase/.branches/
+
+# tests
+coverage/
+playwright-report/
+test-results/
