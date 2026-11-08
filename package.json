@@ -11,7 +11,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "db": "supabase"
+    "db": "supabase",
+    "seed:gen": "tsx scripts/gen-seed.ts",
+    "images": "tsx scripts/gen-images.ts",
+    "seed:push": "supabase db query --remote --yes -f supabase/seed.sql"
   },
   "dependencies": {
     "@google/genai": "^3.0.0",
@@ -35,6 +38,7 @@
     "eslint-config-next": "16.4.5",
     "supabase": "^3.0.0",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5",
     "vitest": "^5.1.0"
   }
