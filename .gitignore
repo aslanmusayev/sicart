@@ -46,3 +46,6 @@ supabase/.branches/
 coverage/
 playwright-report/
 test-results/
+
+# codex image generation scratch
+.image-work/

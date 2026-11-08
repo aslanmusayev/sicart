@@ -15,7 +15,8 @@
     "seed:gen": "tsx scripts/gen-seed.ts",
     "images": "tsx scripts/gen-images.ts",
     "seed:push": "supabase db query --remote --yes -f supabase/seed.sql",
-    "smoke:api": "node scripts/smoke-api.mjs"
+    "smoke:api": "node scripts/smoke-api.mjs",
+    "images:codex": "tsx scripts/gen-images-codex.ts"
   },
   "dependencies": {
     "@google/genai": "^3.0.0",
