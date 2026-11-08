@@ -1,6 +1,6 @@
 # SiCart
 
-**YUNEX 2026 Hackathon prototype.** A smart shopping cart: no checkout queues, personal offers from purchase
+**Hackathon prototype.** A smart shopping cart: no checkout queues, personal offers from purchase
 data, in-store navigation, an AI voice assistant, and an accessibility mode for visually impaired shoppers.
 
 Three screens run from one Next.js codebase and stay in sync in real time:

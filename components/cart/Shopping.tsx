@@ -2,7 +2,7 @@
 // Live session on the cart screen: shopper + list (left), store guide (centre), live cart + total (right).
 import { AnimatePresence, motion } from "motion/react";
 import { useMemo } from "react";
-import { Accessibility, Check, MapPin, Navigation, ShoppingCart, Sparkles } from "lucide-react";
+import { Accessibility, Check, LogOut, MapPin, Navigation, ShoppingCart, Sparkles } from "lucide-react";
 import { planRoute } from "@/lib/map/route";
 import { IsoMap } from "../map/IsoMap";
 import { VoiceDock } from "../voice/VoiceDock";
@@ -64,6 +64,14 @@ export function Shopping({ state }: { state: SessionState }) {
             <p className="text-ink-muted">{profile.isGuest ? "Hi there," : "Welcome back,"}</p>
             <p className="truncate text-title font-semibold">{profile.name}</p>
           </div>
+          <button
+            type="button"
+            onClick={() => void sendAction(state.cartId, "reset").catch(() => {})}
+            className="ml-auto flex shrink-0 items-center gap-1 self-start rounded-full bg-surface px-3 py-1.5 text-sm font-medium text-ink-muted shadow-soft transition hover:text-ink active:scale-95"
+            title="End this shopping session and show the QR code again"
+          >
+            <LogOut size={14} /> End
+          </button>
         </div>
         {profile.a11yMode && (
           <p className="mt-3 inline-flex items-center gap-2 self-start rounded-full bg-ink px-3 py-1 text-sm font-medium text-white">

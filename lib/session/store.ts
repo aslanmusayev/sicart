@@ -5,6 +5,7 @@
 import { after } from "next/server";
 import { getProduct } from "../data/catalog";
 import { adminClient, serviceKey, supabaseUrl } from "../supabase/server";
+import { isStale } from "./expiry";
 import { idleState, reduce } from "./machine";
 import { lineTotal, totals } from "./totals";
 import { SessionError, type SessionAction, type SessionState } from "./types";
@@ -47,7 +48,10 @@ function broadcastSoon(state: SessionState) {
 }
 
 export async function getSnapshot(cartId: number): Promise<SessionState> {
-  return (await load(cartId)).state;
+  const { state } = await load(cartId);
+  // Abandoned session: whoever opens the cart next sees the QR screen, not the last shopper.
+  if (isStale(state)) return dispatch(cartId, { type: "reset", at: Date.now() });
+  return state;
 }
 
 type ActionInput = SessionAction | ((state: SessionState) => SessionAction | Promise<SessionAction>);

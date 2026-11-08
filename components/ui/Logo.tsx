@@ -1,17 +1,14 @@
-import { ShoppingCart } from "lucide-react";
+import Image from "next/image";
+import logo from "@/public/brand/sicart-logo.png";
 
+/** The SiCart wordmark (cart with the "S" + "ICart"). `size` is roughly the cap height in px. */
 export function Logo({ size = 28, className = "" }: { size?: number; className?: string }) {
+  const height = Math.round(size * 1.7);
+  const width = Math.round((height * logo.width) / logo.height);
+  // Fixed box inside a wrapper, so a flex parent can never stretch the logo out of proportion.
   return (
-    <span className={`inline-flex items-center gap-2 font-semibold tracking-tight ${className}`} style={{ fontSize: size }}>
-      <span
-        className="grid place-items-center rounded-[30%] bg-brand-500 text-white shadow-glow"
-        style={{ width: size * 1.25, height: size * 1.25 }}
-      >
-        <ShoppingCart size={size * 0.7} strokeWidth={2.2} />
-      </span>
-      <span>
-        Si<span className="text-brand-500">Cart</span>
-      </span>
+    <span className={`inline-flex shrink-0 self-start ${className}`}>
+      <Image src={logo} alt="SiCart" priority className="max-w-none select-none" style={{ width, height }} sizes={`${width}px`} />
     </span>
   );
 }

@@ -3,12 +3,12 @@
 import { Accessibility, ChevronRight, ListChecks, QrCode, ShoppingCart } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getProduct } from "@/lib/data/catalog";
 import { TODAYS_DEALS } from "@/lib/data/personas";
 import { azn } from "@/lib/format";
 import { parseCartCode } from "@/lib/phone/cartCode";
-import { useIdentity } from "@/lib/phone/identity";
+import { setIdentity, useIdentity } from "@/lib/phone/identity";
 import { Logo } from "../ui/Logo";
 import { ProductArt } from "../ui/ProductArt";
 import { Scanner } from "./Scanner";
@@ -19,6 +19,22 @@ export function PhoneHome() {
   const [scanning, setScanning] = useState(false);
   const [number, setNumber] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  // Forget a cart whose session is over (paid, reset or timed out), so home starts from the QR again.
+  useEffect(() => {
+    if (!identity) return;
+    let cancelled = false;
+    fetch(`/api/session/${identity.cartId}`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((s: { sessionId?: string | null; status?: string } | null) => {
+        if (cancelled || !s) return;
+        if (s.sessionId !== identity.sessionId || s.status === "idle" || s.status === "paid") setIdentity(null);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [identity]);
 
   const go = useCallback(
     (cart: number | null) => {

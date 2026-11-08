@@ -7,6 +7,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { sound, unlockSound } from "@/lib/ui/sound";
 import { useCartSnapshot } from "@/lib/realtime/useCartSnapshot";
 import { sendAction } from "@/lib/session/client";
+import { SESSION_IDLE_MS } from "@/lib/session/expiry";
 import { spring } from "@/lib/ui/motion";
 import { Attract } from "./Attract";
 import { CheckoutOverlay } from "./CheckoutOverlay";
@@ -38,6 +39,14 @@ export function CartScreen({ cartId, appUrl }: { cartId: number; appUrl: string 
     const timer = setTimeout(() => void sendAction(cartId, "reset").catch(() => {}), RESET_AFTER_PAID_MS);
     return () => clearTimeout(timer);
   }, [status, receiptId, cartId]);
+
+  // Nobody touched the cart for a while: end the session so the next shopper starts from the QR.
+  const lastAt = state?.lastEvent?.at;
+  useEffect(() => {
+    if (!status || status === "idle" || status === "paid") return;
+    const timer = setTimeout(() => void sendAction(cartId, "reset").catch(() => {}), SESSION_IDLE_MS);
+    return () => clearTimeout(timer);
+  }, [status, lastAt, cartId]);
 
   // Sound needs one user gesture on the cart screen (tap, click or the Space bar).
   const [soundOn, setSoundOn] = useState(false);
