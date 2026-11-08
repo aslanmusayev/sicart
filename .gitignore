@@ -1,0 +1,39 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# next.js
+.next/
+out/
+build/
+next-env.d.ts
+*.tsbuildinfo
+
+# secrets, never commit
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# vercel
+.vercel
+
+# logs and OS files
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# editors and local tooling
+.vscode/
+.idea/
+.claude/
+
+# android build output (later, APK)
+android/.gradle/
+android/build/
+android/app/build/
+*.apk
+*.aab
+local.properties
