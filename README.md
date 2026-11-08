@@ -168,6 +168,11 @@ Fallbacks: if voice misbehaves, type the same sentence in **Demo Control → Typ
 is lost, long-press **"Cart 12"** on the shopper's phone; **Mid-shop** loads a half-full cart; **Reset cart**
 returns to the QR screen (it also resets by itself 10 s after payment).
 
+**No real shelves on stage? Demo mode.** The cart screen simulates its own sensors: tap an item in *Your list* (or
+**Pick up** on the next-stop card) to drop it in, tap a line in *Your cart* to take it out, or press **Auto-shop** and
+the cart walks the route and picks up the whole list by itself. To show the home-list feature, open `/app/list` on the
+phone before the QR beat, add a product, then connect: the edited list is what appears on the cart.
+
 ## 7. Rehearsal checklist
 
 Before going on stage:

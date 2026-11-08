@@ -1,6 +1,6 @@
 "use client";
 // Customer app home: connect to a cart (scan or type the number), see today's deals, jump back into a session.
-import { Accessibility, ChevronRight, QrCode, ShoppingCart } from "lucide-react";
+import { Accessibility, ChevronRight, ListChecks, QrCode, ShoppingCart } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
@@ -82,6 +82,14 @@ export function PhoneHome() {
           <button className="rounded-tile bg-surface px-5 font-semibold shadow-soft">Go</button>
         </form>
         {error && <p className="mt-2 text-sm text-danger">{error}</p>}
+        <Link href="/app/list" className="mt-4 flex items-center gap-3 rounded-card bg-surface p-4 font-semibold shadow-soft">
+          <ListChecks aria-hidden className="text-brand-600" />
+          <span className="flex-1">
+            My shopping list
+            <span className="block text-sm font-normal text-ink-muted">Plan at home: it moves to the cart when you scan</span>
+          </span>
+          <ChevronRight aria-hidden />
+        </Link>
         <Link
           href="/app/voice"
           className="mt-4 flex items-center gap-3 rounded-card border-2 border-ink bg-surface p-4 font-semibold"
