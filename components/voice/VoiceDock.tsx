@@ -4,7 +4,7 @@
 import { AnimatePresence, motion, useMotionValue, useSpring, useTransform } from "motion/react";
 import { Mic } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { LiveVoice, type VoiceStatus } from "@/lib/voice/live";
+import { LiveVoice, type LiveOptions, type VoiceStatus } from "@/lib/voice/live";
 import { spring } from "@/lib/ui/motion";
 
 const LABEL: Record<VoiceStatus, string> = {
@@ -19,13 +19,21 @@ const LABEL: Record<VoiceStatus, string> = {
 
 interface Props {
   cartId: number;
-  variant: "cart" | "phone";
+  /** "giant": one huge push-to-talk surface for the voice-first (accessibility) phone. */
+  variant: "cart" | "phone" | "giant";
   /** Open the voice session ahead of the first press (no wait on stage). */
   warm: boolean;
+  options?: Omit<LiveOptions, "keepWarm">;
+  /** Extra line under the giant button, e.g. "Say: connect to cart 12". */
+  hint?: string;
   className?: string;
 }
 
-export function VoiceDock({ cartId, variant, warm, className = "" }: Props) {
+export function VoiceDock({ cartId, variant, warm, options, hint, className = "" }: Props) {
+  const optionsRef = useRef(options);
+  useEffect(() => {
+    optionsRef.current = options;
+  });
   const [status, setStatus] = useState<VoiceStatus>("off");
   const [caption, setCaption] = useState({ user: "", model: "" });
   const [error, setError] = useState<string | null>(null);
@@ -35,15 +43,28 @@ export function VoiceDock({ cartId, variant, warm, className = "" }: Props) {
   const voice = useRef<LiveVoice | null>(null);
 
   useEffect(() => {
-    const v = new LiveVoice(cartId, {
-      status: (s) => {
-        setStatus(s);
-        if (s !== "error") setError(null);
+    const opts = optionsRef.current;
+    const v = new LiveVoice(
+      cartId,
+      {
+        status: (s) => {
+          setStatus(s);
+          if (s !== "error") setError(null);
+        },
+        caption: setCaption,
+        level: (rms) => level.set(rms),
+        error: setError,
       },
-      caption: setCaption,
-      level: (rms) => level.set(rms),
-      error: setError,
-    });
+      {
+        mode: opts?.mode,
+        // look the handlers up at call time so callers can pass fresh closures
+        clientTools: opts?.clientTools
+          ? Object.fromEntries(
+              Object.keys(opts.clientTools).map((name) => [name, (args: Record<string, unknown>) => optionsRef.current!.clientTools![name](args)]),
+            )
+          : undefined,
+      },
+    );
     voice.current = v;
     return () => v.close();
   }, [cartId, level]);
@@ -77,6 +98,54 @@ export function VoiceDock({ cartId, variant, warm, className = "" }: Props) {
   const active = status === "listening" || status === "speaking";
   const big = variant === "cart" ? 76 : 64;
   const showCaption = !!(caption.user || caption.model) && status !== "off";
+
+  const press = {
+    onPointerDown: (e: React.PointerEvent<HTMLButtonElement>) => {
+      e.currentTarget.setPointerCapture(e.pointerId);
+      void voice.current?.pressStart();
+    },
+    onPointerUp: () => void voice.current?.pressEnd(),
+    onPointerCancel: () => void voice.current?.pressEnd(),
+    onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
+  };
+
+  if (variant === "giant") {
+    return (
+      <div className={`flex flex-col gap-3 ${className}`}>
+        <button
+          type="button"
+          {...press}
+          aria-label={`${LABEL[status]}. Hold anywhere here to talk to SiCart.`}
+          className={`relative flex min-h-[38vh] w-full touch-none select-none flex-col items-center justify-center gap-4 overflow-hidden rounded-panel text-white transition-colors ${
+            status === "listening" ? "bg-brand-700" : status === "error" ? "bg-ink" : "bg-brand-600"
+          }`}
+        >
+          <motion.span
+            aria-hidden
+            className="absolute size-56 rounded-full bg-white/15"
+            style={{ scale: active ? orbScale : 1 }}
+            animate={status === "thinking" ? { opacity: [0.2, 0.6, 0.2] } : { opacity: active ? 1 : 0.4 }}
+            transition={status === "thinking" ? { duration: 1.2, repeat: Infinity } : { duration: 0.2 }}
+          />
+          <Mic size={72} strokeWidth={2} className="relative" aria-hidden />
+          <span className="relative text-4xl font-bold">{LABEL[status]}</span>
+          {hint && <span className="relative px-6 text-center text-xl text-white/85">{hint}</span>}
+        </button>
+        {(showCaption || error) && (
+          <div className="rounded-card border-2 border-ink bg-surface p-4 text-lg" aria-live="polite">
+            {error ? (
+              <p className="font-semibold text-danger">{error}</p>
+            ) : (
+              <>
+                {caption.user && <p className="text-ink-muted">You: “{caption.user.trim()}”</p>}
+                {caption.model && <p className="mt-1 font-semibold">{caption.model.trim()}</p>}
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className={`pointer-events-none flex flex-col items-center gap-3 ${className}`}>

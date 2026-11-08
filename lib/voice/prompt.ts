@@ -1,5 +1,15 @@
 import type { SessionState } from "../session/types";
 
+/** Connect mode: a visually impaired shopper links the phone to a cart by voice ("connect to cart 12"). */
+export function connectInstruction(): string {
+  return [
+    `You are SiCart, the voice assistant of SiCart Market. The shopper is visually impaired and wants to connect their phone to a smart shopping cart.`,
+    `Every cart has a number. When the shopper says a cart number, call connect_cart with it immediately.`,
+    `If no number was said, ask for it in one short sentence. After connecting, confirm in one short sentence and say they can hold the screen to talk.`,
+    `English only, warm and brief.`,
+  ].join("\n");
+}
+
 /** System instruction for the in-store voice assistant. Short answers, tools for everything, English only. */
 export function systemInstruction(state: SessionState | null): string {
   const name = state?.profile?.name;

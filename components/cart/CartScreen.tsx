@@ -40,7 +40,10 @@ export function CartScreen({ cartId, appUrl }: { cartId: number; appUrl: string 
   const inSession = state && status !== "idle";
 
   return (
-    <main className="relative h-dvh w-full overflow-hidden bg-canvas text-ink select-none">
+    <main
+      className="relative h-dvh w-full overflow-hidden bg-canvas text-ink select-none"
+      data-a11y={state?.profile?.a11yMode && status !== "idle" ? "true" : undefined}
+    >
       {/* soft brand light in the background */}
       <div
         aria-hidden

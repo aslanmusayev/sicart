@@ -3,8 +3,8 @@
 // Field notes (PLAN.md section 7): Constrained endpoint only, always set the voice explicitly.
 import { NextResponse } from "next/server";
 import { getSnapshot } from "@/lib/session/store";
-import { systemInstruction } from "@/lib/voice/prompt";
-import { FUNCTION_DECLARATIONS } from "@/lib/voice/tools";
+import { connectInstruction, systemInstruction } from "@/lib/voice/prompt";
+import { CONNECT_DECLARATIONS, FUNCTION_DECLARATIONS } from "@/lib/voice/tools";
 
 const LIVE_MODEL = "models/gemini-3.1-flash-live-preview";
 const LIVE_VOICE = "Kore";
@@ -12,9 +12,10 @@ const LIVE_VOICE = "Kore";
 export async function POST(req: Request) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) return NextResponse.json({ error: "Voice is not configured (GEMINI_API_KEY)" }, { status: 503 });
-  const body = (await req.json().catch(() => ({}))) as { cartId?: unknown };
+  const body = (await req.json().catch(() => ({}))) as { cartId?: unknown; mode?: unknown };
+  const connectMode = body.mode === "connect";
   const cartId = Number(body.cartId);
-  const state = Number.isInteger(cartId) && cartId > 0 ? await getSnapshot(cartId).catch(() => null) : null;
+  const state = !connectMode && Number.isInteger(cartId) && cartId > 0 ? await getSnapshot(cartId).catch(() => null) : null;
 
   const now = Date.now();
   const res = await fetch("https://generativelanguage.googleapis.com/v1beta/auth_tokens", {
@@ -41,8 +42,8 @@ export async function POST(req: Request) {
           responseModalities: ["AUDIO"],
           speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: LIVE_VOICE } } },
         },
-        systemInstruction: { parts: [{ text: systemInstruction(state) }] },
-        tools: [{ functionDeclarations: FUNCTION_DECLARATIONS }],
+        systemInstruction: { parts: [{ text: connectMode ? connectInstruction() : systemInstruction(state) }] },
+        tools: [{ functionDeclarations: connectMode ? CONNECT_DECLARATIONS : FUNCTION_DECLARATIONS }],
         inputAudioTranscription: {},
         outputAudioTranscription: {},
         realtimeInputConfig: { automaticActivityDetection: { disabled: true } }, // push-to-talk
