@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { Check, Nfc, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getProduct } from "@/lib/data/catalog";
 import { azn } from "@/lib/format";
 import { setIdentity, useIdentity } from "@/lib/phone/identity";
@@ -16,6 +16,7 @@ import { Odometer } from "../ui/Odometer";
 import { ProductArt } from "../ui/ProductArt";
 import { VoiceDock } from "../voice/VoiceDock";
 import { A11ySession } from "./A11ySession";
+import { SoloDrawer } from "./SoloDrawer";
 
 export function SessionView() {
   const router = useRouter();
@@ -25,6 +26,8 @@ export function SessionView() {
   const { state, accept } = useCartSnapshot(cartId);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [solo, setSolo] = useState(false);
+  const soloTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const mine = !!state && !!identity && state.sessionId === identity.sessionId;
 
@@ -79,7 +82,16 @@ export function SessionView() {
   return (
     <>
       <header className="flex items-center justify-between">
-        <div>
+        {/* long-press (hidden) opens the solo-presenter "drop into cart" drawer */}
+        <div
+          className="select-none"
+          onPointerDown={() => {
+            soloTimer.current = setTimeout(() => setSolo(true), 600);
+          }}
+          onPointerUp={() => clearTimeout(soloTimer.current)}
+          onPointerLeave={() => clearTimeout(soloTimer.current)}
+          onContextMenu={(e) => e.preventDefault()}
+        >
           <p className="text-sm text-ink-muted">Cart {cartId}</p>
           <p className="text-lg font-semibold">{state.profile?.name}</p>
         </div>
@@ -198,6 +210,13 @@ export function SessionView() {
           </button>
         )}
       </div>
+
+      <SoloDrawer
+        cartId={cartId}
+        open={solo}
+        onClose={() => setSolo(false)}
+        suggested={state.list.filter((l) => !l.checked).map((l) => l.productId)}
+      />
     </>
   );
 }
