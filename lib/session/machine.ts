@@ -184,6 +184,14 @@ function apply(state: SessionState, action: SessionAction): SessionState {
       return { ...state, status: "checkout", recommendation: null, focus: null, lastEvent: { type: "checkout", at: action.at } };
     }
 
+    case "resume": {
+      if (state.status !== "checkout") throw new SessionError(`Cannot go back to shopping while the cart is ${state.status}`);
+      return withReco(
+        { ...state, status: state.cart.length ? "shopping" : "connected", lastEvent: { type: "resumed", at: action.at } },
+        state.cart.at(-1)?.productId ?? null,
+      );
+    }
+
     case "pay": {
       if (state.status !== "checkout") throw new SessionError(`Cannot pay while the cart is ${state.status}`);
       return { ...state, status: "paid", receiptId: action.receiptId, lastEvent: { type: "paid", at: action.at } };

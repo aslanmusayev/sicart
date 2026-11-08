@@ -36,7 +36,7 @@ export function SessionView() {
     if (mine && state?.status === "paid" && state.receiptId) router.replace(`/app/receipt/${state.receiptId}`);
   }, [mine, state?.status, state?.receiptId, router]);
 
-  async function act(action: "checkout" | "pay") {
+  async function act(action: "checkout" | "pay" | "resume") {
     setBusy(true);
     setError(null);
     try {
@@ -190,16 +190,21 @@ export function SessionView() {
         {state.status !== "checkout" && <VoiceDock cartId={cartId} variant="phone" warm={mine} className="mb-4" />}
         {error && <p className="mb-2 text-center text-sm text-danger">{error}</p>}
         {state.status === "checkout" ? (
-          <motion.button
-            onClick={() => act("pay")}
-            disabled={busy}
-            initial={{ scale: 0.96 }}
-            animate={{ scale: [1, 1.02, 1] }}
-            transition={{ duration: 1.6, repeat: Infinity }}
-            className="flex w-full items-center justify-center gap-3 rounded-panel bg-brand-500 py-6 text-xl font-semibold text-white shadow-glow disabled:opacity-70"
-          >
-            <Nfc size={28} /> Hold near the cart to pay
-          </motion.button>
+          <>
+            <motion.button
+              onClick={() => act("pay")}
+              disabled={busy}
+              initial={{ scale: 0.96 }}
+              animate={{ scale: [1, 1.02, 1] }}
+              transition={{ duration: 1.6, repeat: Infinity }}
+              className="flex w-full items-center justify-center gap-3 rounded-panel bg-brand-500 py-6 text-xl font-semibold text-white shadow-glow disabled:opacity-70"
+            >
+              <Nfc size={28} /> Hold near the cart to pay
+            </motion.button>
+            <button onClick={() => act("resume")} disabled={busy} className="mt-3 w-full py-2 text-center font-medium text-ink-muted">
+              Back to shopping
+            </button>
+          </>
         ) : (
           <button
             onClick={() => act("checkout")}

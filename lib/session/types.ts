@@ -47,7 +47,7 @@ export interface Recommendation {
 
 /** What just happened, so screens can play the right animation (fly-in, removal, chime). */
 export interface SessionEvent {
-  type: "connected" | "added" | "removed" | "moved" | "list" | "focus" | "checkout" | "paid" | "reset";
+  type: "connected" | "added" | "removed" | "moved" | "list" | "focus" | "checkout" | "resumed" | "paid" | "reset";
   productId?: string;
   at: number;
 }
@@ -79,6 +79,8 @@ export type SessionAction =
   | { type: "list_remove"; productIds: string[]; at: number }
   | { type: "focus"; productId: string | null; at: number }
   | { type: "checkout"; at: number }
+  /** Leave the payment screen and keep shopping. */
+  | { type: "resume"; at: number }
   | { type: "pay"; receiptId: string; at: number }
   | { type: "reset"; at: number };
 
