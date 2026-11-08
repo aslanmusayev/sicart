@@ -1,6 +1,6 @@
 // POST /api/session/:cartId/:action -> runs one session action and returns the new snapshot.
 // Actions: connect | add | remove | position | list | checkout | pay | reset | scenario
-// Demo Control actions need the x-demo-pin header (DEMO_CONTROL_PIN).
+// Scenario and list actions need the x-demo-pin header (DEMO_CONTROL_PIN).
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import type { PersonaKey } from "@/lib/data/personas";
@@ -8,7 +8,8 @@ import { loadShopper, type ConnectInput } from "@/lib/session/profile";
 import { dispatch } from "@/lib/session/store";
 import { SessionError, type ListSource, type SessionState } from "@/lib/session/types";
 
-const CONTROL_ONLY = new Set(["add", "remove", "position", "list", "scenario"]);
+// add / remove / position are what the cart's sensors do, so the cart screen may send them too (demo mode).
+const CONTROL_ONLY = new Set(["list", "scenario"]);
 const PERSONAS: PersonaKey[] = ["aysel", "murad"];
 
 type Body = Record<string, unknown>;

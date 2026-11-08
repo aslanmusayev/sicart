@@ -6,12 +6,16 @@ import { useState } from "react";
 import { setIdentity } from "@/lib/phone/identity";
 import { primeSpeech, speak, vibrate } from "@/lib/phone/speech";
 import { sendAction } from "@/lib/session/client";
+import { QrCode } from "lucide-react";
+import { parseCartCode } from "@/lib/phone/cartCode";
 import { VoiceDock } from "../voice/VoiceDock";
+import { Scanner } from "./Scanner";
 
 export function VoiceConnect() {
   const router = useRouter();
   const [number, setNumber] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [scanning, setScanning] = useState(false);
 
   async function connect(cart: number) {
     const state = await sendAction(cart, "connect", { persona: "murad" });
@@ -39,9 +43,29 @@ export function VoiceConnect() {
       <header>
         <p className="text-lg text-ink-muted">SiCart · Voice mode</p>
         <h1 className="text-3xl font-bold">Connect to a cart</h1>
+        <p className="mt-1 text-lg text-ink-muted">Works with your phone&apos;s screen reader and Bluetooth earphones.</p>
       </header>
 
       <VoiceDock cartId={0} variant="giant" warm options={{ mode: "connect", clientTools }} hint="Hold and say: “Connect to cart 12”" />
+
+      <button
+        type="button"
+        onClick={() => setScanning(true)}
+        className="flex w-full items-center justify-center gap-3 rounded-panel bg-ink py-6 text-2xl font-bold text-white"
+      >
+        <QrCode size={32} aria-hidden /> Scan the cart QR
+      </button>
+      {scanning && (
+        <Scanner
+          onClose={() => setScanning(false)}
+          onResult={(text) => {
+            setScanning(false);
+            const n = parseCartCode(text);
+            if (!n) return speak("That is not a SiCart code. Try again.");
+            void connect(n).then(() => speak(`Connected to cart ${n}.`)).catch(() => speak("Could not connect."));
+          }}
+        />
+      )}
 
       <form
         className="rounded-panel border-4 border-ink bg-surface p-5"
