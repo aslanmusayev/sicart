@@ -47,7 +47,7 @@ export interface Recommendation {
 
 /** What just happened, so screens can play the right animation (fly-in, removal, chime). */
 export interface SessionEvent {
-  type: "connected" | "added" | "removed" | "moved" | "list" | "checkout" | "paid" | "reset";
+  type: "connected" | "added" | "removed" | "moved" | "list" | "focus" | "checkout" | "paid" | "reset";
   productId?: string;
   at: number;
 }
@@ -64,6 +64,8 @@ export interface SessionState {
   offers: Offer[];
   position: Cell;
   recommendation: Recommendation | null;
+  /** Product the shopper asked for ("where is the olive oil?"): its shelf pulses and the route goes there first. */
+  focus: { productId: string; at: number } | null;
   receiptId: string | null;
   lastEvent: SessionEvent | null;
 }
@@ -75,6 +77,7 @@ export type SessionAction =
   | { type: "position"; position: Cell; at: number }
   | { type: "list_add"; items: { productId: string; qty: number; source: ListSource }[]; at: number }
   | { type: "list_remove"; productIds: string[]; at: number }
+  | { type: "focus"; productId: string | null; at: number }
   | { type: "checkout"; at: number }
   | { type: "pay"; receiptId: string; at: number }
   | { type: "reset"; at: number };

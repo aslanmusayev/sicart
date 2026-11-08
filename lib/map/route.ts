@@ -76,10 +76,16 @@ function twoOpt(start: Cell, order: Cell[], end: Cell): Cell[] {
   return best;
 }
 
-export function planRoute(position: Cell, productIds: string[]): Route {
+export interface RouteOptions {
+  /** Visit this product's shelf first (find_product), then optimise the rest from there. */
+  first?: string | null;
+}
+
+export function planRoute(position: Cell, productIds: string[], options: RouteOptions = {}): Route {
+  const ids = options.first && !productIds.includes(options.first) ? [options.first, ...productIds] : productIds;
   // group products by shelf: one stop per shelf
   const byShelf = new Map<ShelfId, string[]>();
-  for (const id of productIds) {
+  for (const id of ids) {
     const shelfId = getProduct(id).shelfId;
     byShelf.set(shelfId, [...(byShelf.get(shelfId) ?? []), id]);
   }
@@ -89,8 +95,14 @@ export function planRoute(position: Cell, productIds: string[]): Route {
     stopsByCell.set(`${cell.x},${cell.y}`, { shelfId, cell, productIds: ids });
   }
 
-  const cells = [...stopsByCell.values()].map((s) => s.cell).filter((c) => !same(c, position));
-  const order = cells.length > 2 ? twoOpt(position, nearestNeighbour(position, cells), CHECKOUT) : nearestNeighbour(position, cells);
+  const firstCell = options.first ? getShelf(getProduct(options.first).shelfId).access : null;
+  const forced = firstCell && !same(firstCell, position) ? firstCell : null;
+  const cells = [...stopsByCell.values()]
+    .map((s) => s.cell)
+    .filter((c) => !same(c, position) && !(forced && same(c, forced)));
+  const from = forced ?? position;
+  const rest = cells.length > 2 ? twoOpt(from, nearestNeighbour(from, cells), CHECKOUT) : nearestNeighbour(from, cells);
+  const order = forced ? [forced, ...rest] : rest;
 
   const path: Cell[] = [];
   let length = 0;

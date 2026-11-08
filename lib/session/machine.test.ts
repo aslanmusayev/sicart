@@ -131,6 +131,15 @@ describe("session machine", () => {
     expect(taken.version).toBe(busy.version + 1);
   });
 
+  it("focuses a product the shopper asked for and clears it once picked up", () => {
+    const s = reduce(connectAysel(), { type: "focus", productId: "olive-oil", at: 4 });
+    expect(s.focus).toEqual({ productId: "olive-oil", at: 4 });
+    expect(reduce(s, add("spaghetti")).focus?.productId).toBe("olive-oil");
+    expect(reduce(s, add("olive-oil")).focus).toBeNull();
+    expect(reduce(s, { type: "focus", productId: null, at: 5 }).focus).toBeNull();
+    expect(() => reduce(idleState(12), { type: "focus", productId: "milk", at: 1 })).toThrow(SessionError);
+  });
+
   it("increments the version on every action and rejects unknown products", () => {
     const s = run(connectAysel(), add("spaghetti"), add("milk"), { type: "position", position: { x: 5, y: 5 }, at: 9 });
     expect(s.version).toBe(4);
