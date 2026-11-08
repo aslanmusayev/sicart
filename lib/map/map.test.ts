@@ -68,6 +68,13 @@ describe("route", () => {
     expect(route.length).toBeLessThanOrEqual(naive + 1e-9);
   });
 
+  it("visits a focused product's shelf first", () => {
+    const route = planRoute(ENTRANCE, aysel, { first: "olive-oil" });
+    expect(route.stops[0].shelfId).toBe("oils");
+    expect(route.stops.filter((s) => s.shelfId === "oils")).toHaveLength(1);
+    expect(route.path.at(-1)).toEqual(CHECKOUT);
+  });
+
   it("goes straight to checkout when nothing is left", () => {
     const route = planRoute({ x: 19, y: 12 }, []);
     expect(route.stops).toEqual([]);

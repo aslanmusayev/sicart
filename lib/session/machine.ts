@@ -18,6 +18,7 @@ export function idleState(cartId: number, version = 0): SessionState {
     offers: [],
     position: { ...ENTRANCE },
     recommendation: null,
+    focus: null,
     receiptId: null,
     lastEvent: null,
   };
@@ -101,6 +102,8 @@ function apply(state: SessionState, action: SessionAction): SessionState {
           status: "shopping",
           cart,
           list: syncChecks(state.list, cart),
+          // picking up the product you asked for answers the question
+          focus: state.focus?.productId === product.id ? null : state.focus,
           position: { ...getShelf(product.shelfId).access },
           lastEvent: { type: "added", productId: product.id, at: action.at },
         },
@@ -158,16 +161,27 @@ function apply(state: SessionState, action: SessionAction): SessionState {
         {
           ...state,
           list: state.list.filter((l) => !drop.has(l.productId)),
+          focus: state.focus && drop.has(state.focus.productId) ? null : state.focus,
           lastEvent: { type: "list", at: action.at },
         },
         state.cart.at(-1)?.productId ?? null,
       );
     }
 
+    case "focus": {
+      requireShopping(state, "find products");
+      if (action.productId) requireProduct(action.productId);
+      return {
+        ...state,
+        focus: action.productId ? { productId: action.productId, at: action.at } : null,
+        lastEvent: { type: "focus", productId: action.productId ?? undefined, at: action.at },
+      };
+    }
+
     case "checkout": {
       requireShopping(state, "check out");
       if (!state.cart.length) throw new SessionError("The cart is empty");
-      return { ...state, status: "checkout", recommendation: null, lastEvent: { type: "checkout", at: action.at } };
+      return { ...state, status: "checkout", recommendation: null, focus: null, lastEvent: { type: "checkout", at: action.at } };
     }
 
     case "pay": {

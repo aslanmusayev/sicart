@@ -14,6 +14,7 @@ import { lineTotal, totals } from "@/lib/session/totals";
 import { spring } from "@/lib/ui/motion";
 import { Odometer } from "../ui/Odometer";
 import { ProductArt } from "../ui/ProductArt";
+import { VoiceDock } from "../voice/VoiceDock";
 
 export function SessionView() {
   const router = useRouter();
@@ -164,6 +165,7 @@ export function SessionView() {
       </section>
 
       <div className="sticky bottom-0 -mx-5 mt-6 bg-gradient-to-t from-canvas via-canvas to-transparent px-5 pt-6">
+        {state.status !== "checkout" && <VoiceDock cartId={cartId} variant="phone" warm={mine} className="mb-4" />}
         {error && <p className="mb-2 text-center text-sm text-danger">{error}</p>}
         {state.status === "checkout" ? (
           <motion.button
