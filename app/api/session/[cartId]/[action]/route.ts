@@ -84,6 +84,8 @@ async function run(cartId: number, action: string, body: Body): Promise<SessionS
     }
     case "checkout":
       return dispatch(cartId, { type: "checkout", at });
+    case "resume":
+      return dispatch(cartId, { type: "resume", at });
     case "pay":
       return dispatch(cartId, { type: "pay", receiptId: randomUUID(), at });
     case "reset":

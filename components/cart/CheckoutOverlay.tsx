@@ -2,7 +2,9 @@
 // Simulated NFC POS zone (PLAN.md flow 4): "Tap phone or card" -> ripple -> checkmark -> thank you + savings.
 import { AnimatePresence, motion } from "motion/react";
 import { Leaf, Nfc, ReceiptText, ShoppingBag, Timer } from "lucide-react";
+import { useState } from "react";
 import { azn } from "@/lib/format";
+import { sendAction } from "@/lib/session/client";
 import { totals } from "@/lib/session/totals";
 import type { SessionState } from "@/lib/session/types";
 import { spring } from "@/lib/ui/motion";
@@ -12,6 +14,19 @@ import { Odometer } from "../ui/Odometer";
 export const QUEUE_MINUTES_SKIPPED = 9;
 
 export function CheckoutOverlay({ state }: { state: SessionState }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  async function act(action: "pay" | "resume") {
+    setBusy(true);
+    setError(null);
+    try {
+      await sendAction(state.cartId, action); // the snapshot comes back over Realtime
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong");
+    } finally {
+      setBusy(false);
+    }
+  }
   const t = totals(state.cart);
   const paid = state.status === "paid";
   const name = state.profile?.name ?? "";
@@ -44,15 +59,32 @@ export function CheckoutOverlay({ state }: { state: SessionState }) {
                     transition={{ duration: 2.1, repeat: Infinity, delay: i * 0.7, ease: "easeOut" }}
                   />
                 ))}
-                <span className="grid size-28 place-items-center rounded-full bg-brand-500 text-white shadow-glow">
+                {/* the POS zone itself: tapping it on the cart's touchscreen = paying by card */}
+                <button
+                  type="button"
+                  onClick={() => act("pay")}
+                  disabled={busy}
+                  aria-label="Pay by card"
+                  className="relative grid size-28 place-items-center rounded-full bg-brand-500 text-white shadow-glow transition active:scale-95 disabled:opacity-70"
+                >
                   <Nfc size={56} strokeWidth={1.8} />
-                </span>
+                </button>
               </div>
               <h2 className="mt-6 text-headline font-semibold">Tap your phone or card</h2>
               <p className="mt-2 text-xl text-ink-muted">
                 {t.items} {t.items === 1 ? "item" : "items"} · hold your phone near the cart
               </p>
               <Odometer value={t.total} className="mt-6 text-display font-semibold" />
+              <p className="mt-4 text-ink-muted">Tap the green circle to pay by card</p>
+              <button
+                type="button"
+                onClick={() => act("resume")}
+                disabled={busy}
+                className="mt-5 rounded-full border border-line bg-surface px-6 py-3 text-lg font-semibold text-ink shadow-soft active:scale-[0.98] disabled:opacity-60"
+              >
+                Back to shopping
+              </button>
+              {error && <p className="mt-3 text-danger">{error}</p>}
             </motion.div>
           ) : (
             <motion.div key="paid" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={spring.soft}>

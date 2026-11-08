@@ -124,6 +124,17 @@ describe("session machine", () => {
     expect(reset.version).toBe(paid.version + 1);
   });
 
+  it("goes back to shopping from the payment screen", () => {
+    const checkout = run(connectAysel(), add("spaghetti"), { type: "checkout", at: 5 });
+    const back = reduce(checkout, { type: "resume", at: 6 });
+    expect(back.status).toBe("shopping");
+    expect(back.cart).toHaveLength(1);
+    expect(back.recommendation).not.toBeNull();
+    expect(back.lastEvent).toMatchObject({ type: "resumed" });
+    expect(reduce(back, add("milk")).cart).toHaveLength(2); // shopping works again
+    expect(() => reduce(back, { type: "resume", at: 7 })).toThrow(SessionError);
+  });
+
   it("lets a second phone take over a busy cart", () => {
     const busy = run(connectAysel(), add("spaghetti"));
     const taken = connectAysel(busy);
