@@ -33,8 +33,8 @@ function octile(ax: number, ay: number, bx: number, by: number): number {
   return dx + dy + (SQRT2 - 2) * Math.min(dx, dy);
 }
 
-/** Minimal binary heap keyed by f-score. */
-class Heap {
+/** Minimal binary heap keyed by f-score (also used by the directions search). */
+export class Heap {
   private items: { node: number; f: number }[] = [];
   get size() {
     return this.items.length;
