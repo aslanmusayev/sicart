@@ -5,6 +5,7 @@ import { useMemo } from "react";
 import { Accessibility, Check, MapPin, Navigation, ShoppingCart, Sparkles } from "lucide-react";
 import { planRoute } from "@/lib/map/route";
 import { IsoMap } from "../map/IsoMap";
+import { VoiceDock } from "../voice/VoiceDock";
 import { getProduct } from "@/lib/data/catalog";
 import { ENTRANCE, SHELVES } from "@/lib/data/storeMap";
 import type { Cell } from "@/lib/data/types";
@@ -37,8 +38,12 @@ export function Shopping({ state }: { state: SessionState }) {
   const openKey = openItems.join(",");
   const { x: px, y: py } = state.position;
   // Re-plan only when the position or the open list changes (A* results are cached as well).
-  const route = useMemo(() => planRoute({ x: px, y: py }, openKey ? openKey.split(",") : []), [px, py, openKey]);
-  const nextProductId = route.stops[0]?.productIds[0] ?? null;
+  const focusId = state.focus?.productId ?? null;
+  const route = useMemo(
+    () => planRoute({ x: px, y: py }, openKey ? openKey.split(",") : [], { first: focusId }),
+    [px, py, openKey, focusId],
+  );
+  const nextProductId = focusId ?? route.stops[0]?.productIds[0] ?? null;
   const lastAdded = state.lastEvent?.type === "added" ? state.lastEvent.productId : null;
   const reco = state.recommendation;
 
@@ -189,6 +194,7 @@ export function Shopping({ state }: { state: SessionState }) {
         </div>
         <div className="relative -mx-2 min-h-0 flex-1">
           <IsoMap position={state.position} route={route} targetShelfId={route.stops[0]?.shelfId ?? null} />
+          <VoiceDock cartId={state.cartId} variant="cart" warm className="absolute inset-x-0 bottom-1" />
         </div>
         <AnimatePresence mode="wait">
           {nextProductId ? (
