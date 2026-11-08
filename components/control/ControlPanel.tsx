@@ -3,7 +3,8 @@
 // Bare on purpose (Day 1); the polish pass comes later.
 import { useMemo, useState, useSyncExternalStore } from "react";
 import { CATALOG, getProduct } from "@/lib/data/catalog";
-import { ZONES } from "@/lib/data/storeMap";
+import { ZONES, isWalkable } from "@/lib/data/storeMap";
+import { IsoMap } from "../map/IsoMap";
 import type { ZoneId } from "@/lib/data/types";
 import { azn, initials } from "@/lib/format";
 import { useCartSnapshot } from "@/lib/realtime/useCartSnapshot";
@@ -116,6 +117,22 @@ export function ControlPanel({ cartId }: { cartId: number }) {
         <Btn onClick={() => act("pay")} disabled={busy} tone="accent">POS tap</Btn>
         <Btn onClick={() => act("reset")} disabled={busy} tone="danger" className="col-span-3">Reset cart</Btn>
       </section>
+
+      {state && state.status !== "idle" && (
+        <section className="px-4 pt-5">
+          <h2 className="mb-2 text-sm font-semibold text-neutral-500">Map · tap the floor to move the cart</h2>
+          <div className="rounded-2xl bg-white p-1 shadow-sm">
+            <IsoMap
+              position={state.position}
+              onCellClick={(cell) =>
+                isWalkable(cell.x, cell.y)
+                  ? void act("position", { x: cell.x, y: cell.y })
+                  : (setToast("That spot is a shelf or a wall"), setTimeout(() => setToast(null), 1800))
+              }
+            />
+          </div>
+        </section>
+      )}
 
       {state && state.cart.length > 0 && (
         <section className="px-4 pt-5">

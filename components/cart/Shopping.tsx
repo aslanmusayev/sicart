@@ -1,7 +1,10 @@
 "use client";
 // Live session on the cart screen: shopper + list (left), store guide (centre), live cart + total (right).
 import { AnimatePresence, motion } from "motion/react";
+import { useMemo } from "react";
 import { Accessibility, Check, MapPin, Navigation, ShoppingCart, Sparkles } from "lucide-react";
+import { planRoute } from "@/lib/map/route";
+import { IsoMap } from "../map/IsoMap";
 import { getProduct } from "@/lib/data/catalog";
 import { ENTRANCE, SHELVES } from "@/lib/data/storeMap";
 import type { Cell } from "@/lib/data/types";
@@ -30,14 +33,19 @@ export function Shopping({ state }: { state: SessionState }) {
   const t = totals(state.cart);
   const personalOffers = state.offers.filter((o) => o.personal).slice(0, 3);
   const done = state.list.filter((l) => l.checked).length;
-  const next = state.list.find((l) => !l.checked);
+  const openItems = state.list.filter((l) => !l.checked).map((l) => l.productId);
+  const openKey = openItems.join(",");
+  const { x: px, y: py } = state.position;
+  // Re-plan only when the position or the open list changes (A* results are cached as well).
+  const route = useMemo(() => planRoute({ x: px, y: py }, openKey ? openKey.split(",") : []), [px, py, openKey]);
+  const nextProductId = route.stops[0]?.productIds[0] ?? null;
   const lastAdded = state.lastEvent?.type === "added" ? state.lastEvent.productId : null;
   const reco = state.recommendation;
 
   return (
-    <div className="grid h-full grid-cols-[340px_1fr_430px] gap-6 p-6 xl:grid-cols-[380px_1fr_480px] xl:p-8">
+    <div className="grid h-full grid-cols-[270px_minmax(0,1fr)_330px] gap-4 p-4 2xl:grid-cols-[340px_minmax(0,1fr)_440px] 2xl:gap-6 2xl:p-8">
       {/* LEFT: shopper, offers, list */}
-      <aside className="glass flex min-h-0 flex-col rounded-panel p-6 shadow-soft">
+      <aside className="glass flex min-h-0 flex-col rounded-panel p-5 shadow-soft 2xl:p-6">
         <div className="flex items-center gap-4">
           <motion.div
             layoutId="hero-card"
@@ -147,51 +155,70 @@ export function Shopping({ state }: { state: SessionState }) {
         </section>
       </aside>
 
-      {/* CENTRE: store guide (the isometric map replaces this panel) */}
-      <section className="glass flex min-h-0 flex-col rounded-panel p-8 shadow-soft">
-        <p className="text-sm font-semibold uppercase tracking-wider text-ink-subtle">SiCart Market</p>
-        <div className="flex flex-1 flex-col items-center justify-center gap-8 text-center">
-          <div className="relative grid size-40 place-items-center">
-            <motion.span
-              className="absolute inset-0 rounded-full bg-brand-500/15"
-              animate={{ scale: [1, 1.25, 1], opacity: [0.7, 0, 0.7] }}
-              transition={{ duration: 2.4, repeat: Infinity, ease: "easeOut" }}
-            />
-            <span className="grid size-24 place-items-center rounded-full bg-brand-500 text-white shadow-glow">
-              <MapPin size={44} strokeWidth={2} />
-            </span>
-          </div>
-          <div>
-            <p className="text-lg text-ink-muted">You are here</p>
+      {/* CENTRE: isometric store map with the live shortest route */}
+      <section className="glass relative flex min-h-0 flex-col overflow-hidden rounded-panel p-5 shadow-soft">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wider text-ink-subtle">
+              <MapPin size={14} /> You are here
+            </p>
             <AnimatePresence mode="wait">
               <motion.p
                 key={`${state.position.x},${state.position.y}`}
-                initial={{ opacity: 0, y: 12 }}
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -12 }}
+                exit={{ opacity: 0, y: -8 }}
                 transition={spring.soft}
-                className="text-headline font-semibold"
+                className="truncate text-title font-semibold"
               >
                 {placeOf(state.position)}
               </motion.p>
             </AnimatePresence>
           </div>
-          {next && (
-            <div className="flex items-center gap-4 rounded-card bg-surface px-5 py-4 text-left shadow-soft">
-              <Navigation size={26} className="text-brand-600" />
-              <ProductArt product={getProduct(next.productId)} size={52} />
-              <div>
-                <p className="text-sm text-ink-muted">Next on your list</p>
-                <p className="text-lg font-semibold">{getProduct(next.productId).name}</p>
-                <p className="text-sm text-ink-muted">{shelfLabel(next.productId)}</p>
-              </div>
-            </div>
+          {route.stops.length > 0 && (
+            <motion.span
+              key={`${route.etaMin}-${route.stops.length}`}
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={spring.snappy}
+              className="shrink-0 rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white tabular-nums"
+            >
+              ~{route.etaMin} min · {route.stops.length} {route.stops.length === 1 ? "stop" : "stops"}
+            </motion.span>
           )}
         </div>
+        <div className="relative -mx-2 min-h-0 flex-1">
+          <IsoMap position={state.position} route={route} targetShelfId={route.stops[0]?.shelfId ?? null} />
+        </div>
+        <AnimatePresence mode="wait">
+          {nextProductId ? (
+            <motion.div
+              key={nextProductId}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={spring.soft}
+              className="flex items-center gap-3 rounded-card bg-surface p-3 shadow-soft"
+            >
+              <Navigation size={22} className="shrink-0 text-brand-600" />
+              <ProductArt product={getProduct(nextProductId)} size={44} />
+              <div className="min-w-0">
+                <p className="text-sm text-ink-muted">Next stop</p>
+                <p className="truncate font-semibold">
+                  {getProduct(nextProductId).name} <span className="font-normal text-ink-muted">· {shelfLabel(nextProductId)}</span>
+                </p>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.p key="done" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-card bg-brand-50 p-3 text-center font-semibold text-brand-700">
+              List complete: head to checkout
+            </motion.p>
+          )}
+        </AnimatePresence>
       </section>
 
       {/* RIGHT: live cart */}
-      <aside className="flex min-h-0 flex-col rounded-panel bg-surface p-6 shadow-lift">
+      <aside className="flex min-h-0 flex-col rounded-panel bg-surface p-5 shadow-lift 2xl:p-6">
         <div className="flex items-center justify-between">
           <h2 className="flex items-center gap-2 text-title font-semibold">
             <ShoppingCart size={26} /> Your cart
@@ -263,23 +290,28 @@ export function Shopping({ state }: { state: SessionState }) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
               transition={spring.soft}
-              className="mt-4 flex items-center gap-3 rounded-card border border-brand-200 bg-brand-50 p-3"
+              className="relative mt-4 rounded-card border border-brand-200 bg-brand-50 p-3"
             >
-              <ProductArt product={getProduct(reco.productId)} size={56} />
-              <div className="min-w-0 flex-1">
-                <p className="flex items-center gap-1 text-sm font-medium text-brand-700">
-                  <Sparkles size={14} /> {reco.why}
-                </p>
-                <p className="truncate font-semibold">
-                  {getProduct(reco.productId).brand} {getProduct(reco.productId).name}
-                </p>
-                <p className="text-sm text-ink-muted">{shelfLabel(reco.productId)}</p>
-              </div>
               {reco.discountPct > 0 && (
-                <span className="shrink-0 rounded-full bg-brand-500 px-2.5 py-1 text-sm font-semibold text-white">
-                  −{reco.discountPct}% for you
+                <span className="absolute right-3 top-3 rounded-full bg-brand-500 px-2.5 py-0.5 text-sm font-semibold text-white">
+                  −{reco.discountPct}%
                 </span>
               )}
+              <p className="flex items-center gap-1.5 pr-16 text-sm font-medium text-brand-700">
+                <Sparkles size={14} className="shrink-0" /> {reco.why}
+              </p>
+              <div className="mt-2 flex items-center gap-3">
+                <ProductArt product={getProduct(reco.productId)} size={48} />
+                <div className="min-w-0">
+                  <p className="truncate font-semibold">
+                    {getProduct(reco.productId).brand} {getProduct(reco.productId).name}
+                  </p>
+                  <p className="truncate text-sm text-ink-muted">
+                    {shelfLabel(reco.productId)}
+                    {reco.discountPct > 0 && " · just for you"}
+                  </p>
+                </div>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
