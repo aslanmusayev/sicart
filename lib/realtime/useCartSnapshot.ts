@@ -29,6 +29,14 @@ export function useCartSnapshot(cartId: number) {
   }, [accept, cartId]);
 
   useEffect(() => {
+    // First paint must not wait for the websocket handshake: fetch right away, in parallel with subscribing.
+    let cancelled = false;
+    fetch(`/api/session/${cartId}`, { cache: "no-store" })
+      .then((res) => (res.ok ? (res.json() as Promise<SessionState>) : null))
+      .then((snapshot) => {
+        if (!cancelled && snapshot) accept(snapshot);
+      })
+      .catch(() => {});
     const channel = browserClient()
       .channel(`cart:${cartId}`)
       .on("broadcast", { event: "snapshot" }, ({ payload }) => accept(payload as SessionState))
@@ -46,6 +54,7 @@ export function useCartSnapshot(cartId: number) {
     document.addEventListener("visibilitychange", onVisible);
     window.addEventListener("online", onOnline);
     return () => {
+      cancelled = true;
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("online", onOnline);
       void browserClient().removeChannel(channel);
