@@ -27,7 +27,7 @@ export function Attract({ cartId, connectUrl }: { cartId: number; connectUrl: st
   return (
     <div className="grid h-full grid-cols-[1.1fr_1fr] gap-10 p-10 xl:p-14">
       <section className="flex flex-col">
-        <Logo size={30} />
+        <Logo size={40} />
 
 
         <div className="flex flex-1 flex-col justify-center gap-8">

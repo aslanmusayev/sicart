@@ -1,7 +1,7 @@
 "use client";
 // Phone companion during a session: live total, list check-offs, cart, recommendation, checkout and "tap to pay".
 import { AnimatePresence, motion } from "motion/react";
-import { Check, Nfc, Sparkles } from "lucide-react";
+import { Check, LogOut, Nfc, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -47,6 +47,12 @@ export function SessionView() {
     } finally {
       setBusy(false);
     }
+  }
+
+  async function endSession() {
+    await sendAction(cartId, "reset").catch(() => {});
+    setIdentity(null);
+    router.replace("/app");
   }
 
   if (identity === undefined || !state) return <p className="m-auto text-ink-subtle">Connecting…</p>;
@@ -95,8 +101,18 @@ export function SessionView() {
           <p className="text-sm text-ink-muted">Cart {cartId}</p>
           <p className="text-lg font-semibold">{state.profile?.name}</p>
         </div>
-        <span className="flex items-center gap-1.5 rounded-full bg-brand-50 px-3 py-1 text-sm font-medium text-brand-700">
-          <span className="size-2 rounded-full bg-brand-500" /> Connected
+        <span className="flex items-center gap-2">
+          <span className="flex items-center gap-1.5 rounded-full bg-brand-50 px-3 py-1 text-sm font-medium text-brand-700">
+            <span className="size-2 rounded-full bg-brand-500" /> Connected
+          </span>
+          <button
+            type="button"
+            onClick={endSession}
+            className="flex items-center gap-1 rounded-full bg-surface px-3 py-1 text-sm font-medium text-ink-muted shadow-soft"
+            aria-label="End shopping and disconnect from the cart"
+          >
+            <LogOut size={14} /> End
+          </button>
         </span>
       </header>
 

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Logo } from "@/components/ui/Logo";
 import { DEMO_CART_ID } from "@/lib/data/ids";
 
 // Launcher for the three surfaces (handy at the booth and while developing).
@@ -12,9 +13,8 @@ export default function Home() {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col justify-center gap-10 px-6 py-16">
       <div>
-        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-brand-600">YUNEX 2026</p>
-        <h1 className="mt-2 text-headline font-semibold">
-          Si<span className="text-brand-500">Cart</span>
+        <h1>
+          <Logo size={44} />
         </h1>
         <p className="mt-3 max-w-xl text-lg text-ink-muted">
           The smart shopping cart: no checkout queues, personal offers, in-store navigation, a voice assistant and an
