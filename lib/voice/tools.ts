@@ -17,6 +17,15 @@ export type ToolName = (typeof TOOL_NAMES)[number];
 const str = (description: string) => ({ type: "STRING", description });
 const num = (description: string) => ({ type: "NUMBER", description });
 
+/** Connect mode (accessibility, phone not linked to a cart yet): runs in the browser, not on /api/tools. */
+export const CONNECT_DECLARATIONS = [
+  {
+    name: "connect_cart",
+    description: "Connect this phone to the shopping cart with the number the shopper said (the number is printed on the cart).",
+    parameters: { type: "OBJECT", properties: { number: { type: "INTEGER", description: "Cart number, e.g. 12" } }, required: ["number"] },
+  },
+];
+
 export const FUNCTION_DECLARATIONS = [
   {
     name: "plan_recipe",

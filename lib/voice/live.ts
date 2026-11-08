@@ -22,6 +22,15 @@ interface FunctionCall {
   args?: Record<string, unknown>;
 }
 
+export interface LiveOptions {
+  /** Re-open the session in the background when it drops, so the next press is instant (default true). */
+  keepWarm?: boolean;
+  /** "connect": no cart yet, the only tool is connect_cart (accessibility: "connect to cart 12"). */
+  mode?: "shop" | "connect";
+  /** Tools that run in the browser instead of /api/tools. */
+  clientTools?: Record<string, (args: Record<string, unknown>) => Promise<Record<string, unknown>>>;
+}
+
 export class LiveVoice {
   private ws: WebSocket | null = null;
   private connecting: Promise<void> | null = null;
@@ -37,8 +46,7 @@ export class LiveVoice {
   constructor(
     private cartId: number,
     private events: VoiceEvents,
-    /** Re-open the session in the background when it drops, so the next press is instant. */
-    private keepWarm = true,
+    private options: LiveOptions = {},
   ) {}
 
   private set(status: VoiceStatus) {
@@ -60,7 +68,7 @@ export class LiveVoice {
       const res = await fetch("/api/voice/token", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ cartId: this.cartId }),
+        body: JSON.stringify({ cartId: this.cartId, mode: this.options.mode ?? "shop" }),
       });
       const { token, setup, error } = await res.json();
       if (!token) throw new Error(error ?? "Voice is unavailable");
@@ -103,7 +111,7 @@ export class LiveVoice {
     this.ws = null;
     if (this.closed) return;
     if (this.status !== "error") this.set(this.pressed ? "connecting" : "off");
-    if (this.keepWarm && this.retries < 5) {
+    if ((this.options.keepWarm ?? true) && this.retries < 5) {
       const delay = 800 * 2 ** this.retries++;
       setTimeout(() => !this.closed && !this.ws && void this.connect().catch(() => {}), delay);
     }
@@ -196,6 +204,11 @@ export class LiveVoice {
       this.set("thinking");
       const functionResponses = await Promise.all(
         toolCall.functionCalls.map(async (fc) => {
+          const local = this.options.clientTools?.[fc.name];
+          if (local) {
+            const response = await local(fc.args ?? {}).catch((e: Error) => ({ ok: false, error: e.message }));
+            return { id: fc.id, name: fc.name, response };
+          }
           try {
             const res = await fetch("/api/tools", {
               method: "POST",

@@ -15,6 +15,7 @@ import { spring } from "@/lib/ui/motion";
 import { Odometer } from "../ui/Odometer";
 import { ProductArt } from "../ui/ProductArt";
 import { VoiceDock } from "../voice/VoiceDock";
+import { A11ySession } from "./A11ySession";
 
 export function SessionView() {
   const router = useRouter();
@@ -58,6 +59,15 @@ export function SessionView() {
         <Link href="/app" onClick={() => setIdentity(null)} className="mt-6 inline-block rounded-card bg-ink px-6 py-3 font-semibold text-white">
           Back to home
         </Link>
+      </div>
+    );
+  }
+
+  // Accessibility persona: voice-first phone with directions and spoken announcements.
+  if (state.profile?.a11yMode) {
+    return (
+      <div data-a11y="true" className="-mx-5 -my-5 flex flex-1 flex-col bg-canvas px-5 py-5">
+        <A11ySession state={state} cartId={cartId} busy={busy} onCheckout={() => act("checkout")} onPay={() => act("pay")} />
       </div>
     );
   }
