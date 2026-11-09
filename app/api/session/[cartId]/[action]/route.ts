@@ -11,6 +11,7 @@ import { SessionError, type ListSource, type SessionState } from "@/lib/session/
 // add / remove / position are what the cart's sensors do, so the cart screen may send them too (demo mode).
 const CONTROL_ONLY = new Set(["list", "scenario"]);
 const PERSONAS: PersonaKey[] = ["aysel", "murad"];
+const SOURCES: ListSource[] = ["list", "recipe", "voice"];
 
 type Body = Record<string, unknown>;
 
@@ -79,7 +80,7 @@ async function run(cartId: number, action: string, body: Body): Promise<SessionS
         items: items.map((i: Body) => ({
           productId: str(i.productId, "productId"),
           qty: int(i.qty, "qty", 1),
-          source: (i.source as ListSource) ?? "list",
+          source: SOURCES.includes(i.source as ListSource) ? (i.source as ListSource) : "list",
         })),
       });
     }
