@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { getPersona, TODAYS_DEALS } from "../data/personas";
 import { ENTRANCE, getShelf } from "../data/storeMap";
-import { idleState, reduce } from "./machine";
+import { idleState, MAX_QTY, reduce } from "./machine";
 import { totals } from "./totals";
 import { SessionError, type SessionAction, type SessionState } from "./types";
 
@@ -158,5 +158,50 @@ describe("session machine", () => {
     expect(s.version).toBe(4);
     expect(s.position).toEqual({ x: 5, y: 5 });
     expect(() => reduce(s, add("caviar"))).toThrow("Unknown product");
+  });
+
+  describe("quantity and position limits", () => {
+    const bad = (state: SessionState, action: SessionAction) => expect(() => reduce(state, action)).toThrow(SessionError);
+
+    it("rejects zero, negative, fractional and huge quantities", () => {
+      const s = run(connectAysel(), add("milk", 1));
+      for (const qty of [0, -5, 1.5, 1000]) {
+        bad(s, add("milk", qty));
+        bad(s, remove("milk", qty));
+      }
+    });
+
+    it("a negative remove can never add products", () => {
+      const s = run(connectAysel(), add("milk", 1));
+      expect(() => reduce(s, remove("milk", -5))).toThrow(SessionError);
+      expect(s.cart[0].qty).toBe(1);
+    });
+
+    it("caps one product at MAX_QTY in the cart", () => {
+      const s = run(connectAysel(), add("tomatoes", MAX_QTY));
+      expect(s.cart[0].qty).toBe(MAX_QTY);
+      bad(s, add("tomatoes", 1));
+    });
+
+    it("keeps the cart inside the store map", () => {
+      const s = connectAysel();
+      for (const position of [{ x: -1, y: 5 }, { x: 5, y: -1 }, { x: 999, y: 5 }, { x: 5, y: 99999 }, { x: 1.5, y: 2 }]) {
+        bad(s, { type: "position", position, at: 4 });
+      }
+      expect(reduce(s, { type: "position", position: { x: 3, y: 4 }, at: 4 }).position).toEqual({ x: 3, y: 4 });
+    });
+
+    it("clamps list quantities from recipes and voice into 1..MAX_QTY", () => {
+      const s = reduce(connectAysel(), {
+        type: "list_add",
+        at: 5,
+        items: [
+          { productId: "spaghetti", qty: 500, source: "recipe" },
+          { productId: "pecorino", qty: -3, source: "voice" },
+        ],
+      });
+      expect(s.list.find((l) => l.productId === "spaghetti")?.qty).toBe(MAX_QTY);
+      expect(s.list.find((l) => l.productId === "pecorino")?.qty).toBe(1);
+    });
   });
 });

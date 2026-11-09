@@ -1,7 +1,7 @@
 // PURE session reducer: (state, action) -> state. No I/O, no clock, no randomness: everything comes in the action.
 // The server (store.ts) persists the result, bumps nothing else and broadcasts the full snapshot.
 import { findProduct, getProduct } from "../data/catalog";
-import { ENTRANCE, getShelf } from "../data/storeMap";
+import { ENTRANCE, getShelf, GRID } from "../data/storeMap";
 import { recommend } from "../reco/score";
 import { bestOffer } from "./totals";
 import { SessionError, type CartLine, type ListItem, type SessionAction, type SessionState } from "./types";
@@ -25,6 +25,18 @@ export function idleState(cartId: number, version = 0): SessionState {
 }
 
 const SHOPPING: SessionState["status"][] = ["connected", "shopping"];
+
+/** Most of one product a cart (or a list) can hold: no "1000 tomatoes" or "-5 milk". */
+export const MAX_QTY = 20;
+
+function checkQty(qty: number) {
+  if (!Number.isInteger(qty) || qty < 1 || qty > MAX_QTY) {
+    throw new SessionError(`Quantity must be between 1 and ${MAX_QTY}`, 400);
+  }
+}
+
+/** List quantities come from recipes and the voice assistant: keep them in range instead of failing. */
+const clampQty = (qty: number) => Math.min(Math.max(Math.round(qty) || 1, 1), MAX_QTY);
 
 function requireShopping(state: SessionState, what: string) {
   if (!SHOPPING.includes(state.status)) {
@@ -82,9 +94,12 @@ function apply(state: SessionState, action: SessionAction): SessionState {
       requireShopping(state, "add items");
       requireProduct(action.productId);
       const qty = action.qty ?? 1;
-      if (qty < 1) throw new SessionError("Quantity must be at least 1", 400);
+      checkQty(qty);
       const product = getProduct(action.productId);
       const existing = state.cart.find((l) => l.productId === product.id);
+      if (existing && existing.qty + qty > MAX_QTY) {
+        throw new SessionError(`The cart can hold at most ${MAX_QTY} of ${product.name}`, 400);
+      }
       const cart = existing
         ? state.cart.map((l) => (l.productId === product.id ? { ...l, qty: l.qty + qty } : l))
         : [
@@ -116,6 +131,7 @@ function apply(state: SessionState, action: SessionAction): SessionState {
       const existing = state.cart.find((l) => l.productId === action.productId);
       if (!existing) throw new SessionError(`${action.productId} is not in the cart`, 404);
       const qty = action.qty ?? 1;
+      checkQty(qty);
       const cart =
         existing.qty > qty
           ? state.cart.map((l) => (l.productId === action.productId ? { ...l, qty: l.qty - qty } : l))
@@ -135,7 +151,11 @@ function apply(state: SessionState, action: SessionAction): SessionState {
 
     case "position": {
       if (state.status === "idle") throw new SessionError("No shopper is connected");
-      return { ...state, position: { ...action.position }, lastEvent: { type: "moved", at: action.at } };
+      const { x, y } = action.position;
+      if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0 || x >= GRID.width || y >= GRID.height) {
+        throw new SessionError("That position is outside the store", 400);
+      }
+      return { ...state, position: { x, y }, lastEvent: { type: "moved", at: action.at } };
     }
 
     case "list_add": {
@@ -143,10 +163,11 @@ function apply(state: SessionState, action: SessionAction): SessionState {
       let list = [...state.list];
       for (const item of action.items) {
         requireProduct(item.productId);
+        const qty = clampQty(item.qty);
         const existing = list.find((l) => l.productId === item.productId);
         list = existing
-          ? list.map((l) => (l.productId === item.productId ? { ...l, qty: Math.max(l.qty, item.qty) } : l))
-          : [...list, { productId: item.productId, qty: item.qty, checked: false, source: item.source }];
+          ? list.map((l) => (l.productId === item.productId ? { ...l, qty: Math.max(l.qty, qty) } : l))
+          : [...list, { productId: item.productId, qty, checked: false, source: item.source }];
       }
       return withReco(
         { ...state, list: syncChecks(list, state.cart), lastEvent: { type: "list", at: action.at } },
